@@ -1,0 +1,1 @@
+from .fake_image import predict
