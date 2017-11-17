@@ -1,3 +1,4 @@
+import os
 import re
 import requests
 import urllib, json
@@ -8,6 +9,7 @@ import logging
 import pandas as pd
 import sys
 import pickle
+import gzip
 
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -23,25 +25,23 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 
-from distutils.sysconfig import get_python_lib
+#from distutils.sysconfig import get_python_lib
 
-lib_path = get_python_lib()
-model_path ='/fake_image/models/tweet_models.pkl'
-path = lib_path+model_path
-path = '/'.join(path.split('\\'))
+current_dir = os.path.dirname(os.path.realpath(__file__))
+model_path = os.path.join(current_dir, 'models/tweet_models.pkl')
 
-F_HARMONIC = "D:/Downloads/hostgraph-h.tsv/hostgraph-h.tsv"
-F_INDEGREE = "D:/Downloads/hostgraph-indegree.tsv/hostgraph-indegree.tsv"
+F_HARMONIC = os.path.join(current_dir, "data/hostgraph-h.tsv.gz")
+F_INDEGREE = os.path.join(current_dir, "data/hostgraph-indegree.tsv.gz")
 
-F_PLEASE = "C:/Users/imaad/twitteradvancedsearch/senti_words/please.txt"
-F_HAPPYEMO = "C:/Users/imaad/twitteradvancedsearch/emoticons/happy-emoticons.txt"
-F_SADEMO = "C:/Users/imaad/twitteradvancedsearch/emoticons/sad-emoticons.txt"
-F_FIRSTPRON = "C:/Users/imaad/twitteradvancedsearch/pronouns/first-order-prons.txt"
-F_SECONDPRON = "C:/Users/imaad/twitteradvancedsearch/pronouns/second-order-prons.txt"
-F_THIRDPRON = "C:/Users/imaad/twitteradvancedsearch/pronouns/third-order-prons.txt"
-F_SLANG = "C:/Users/imaad/twitteradvancedsearch/slang_words/slangwords.txt"
-F_NEGATIVE = "C:/Users/imaad/twitteradvancedsearch/senti_words/negative-words.txt"
-F_POSITIVE = "C:/Users/imaad/twitteradvancedsearch/senti_words/positive-words.txt"
+F_PLEASE = os.path.join(current_dir, "data/please.txt")
+F_HAPPYEMO = os.path.join(current_dir, "data/happy-emoticons.txt")
+F_SADEMO = os.path.join(current_dir, "data/sad-emoticons.txt")
+F_FIRSTPRON = os.path.join(current_dir, "data/first-order-prons.txt")
+F_SECONDPRON = os.path.join(current_dir, "data/second-order-prons.txt")
+F_THIRDPRON  = os.path.join(current_dir, "data/third-order-prons.txt")
+F_SLANG      = os.path.join(current_dir, "data/slangwords.txt")
+F_NEGATIVE   = os.path.join(current_dir, "data/negative-words.txt")
+F_POSITIVE   = os.path.join(current_dir, "data/positive-words.txt")
 
 def getNumUppercaseChars(tweet):
     count = 0
@@ -190,7 +190,7 @@ def getIndegree(expandedLink, fin=F_INDEGREE):
 
     if expandedLink == None:
     	return 0
-    with open(fin, 'rb') as tsvin:
+    with gzip.open(fin, 'rb') as tsvin:
     	tsvreader = csv.reader(tsvin,delimiter="\t")
     	for row in tsvreader:
     		if expandedLink == row[0]:
@@ -399,8 +399,8 @@ def main(tweet):
                                'rtCount', 'slangWords', 'colonSymbol', 'pleasePresent', 'WotValue', 'numQuesSymbol',
                                'numExclamSymbol', 'readabilityValue', 'Indegree', 'Harmonic',
                                'AlexaPopularity', 'AlexaReach', 'AlexaCountry', 'AlexaDelta'])
-	
-    with open(path, 'rb') as f:
+
+    with open(model_path, 'rb') as f:
         tweet_model_list = pickle.load(f)
     preds = []
     for model in tweet_model_list:
