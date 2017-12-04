@@ -13,6 +13,8 @@ import csv
 import pickle
 import emoji
 import sys
+import os
+import gc
 
 from PIL import Image
 from urlparse import urlparse
@@ -26,10 +28,9 @@ from geopy.geocoders import Nominatim
 from textstat.textstat import textstat
 from nltk.tokenize import word_tokenize
 
-from distutils.sysconfig import get_python_lib
-user_model_path = (get_python_lib())+'/fake_image/models/user_models.pkl'
-user_model_path = '/'.join(user_model_path.split('\\'))
 
+current_dir = os.path.dirname(os.path.realpath(__file__))
+user_model_path = os.path.join(current_dir, 'models/user_models.pkl') 
 F_HARMONIC = "D:/Downloads/hostgraph-h.tsv/hostgraph-h.tsv"
 F_INDEGREE = "D:/Downloads/hostgraph-indegree.tsv/hostgraph-indegree.tsv"
 
@@ -311,18 +312,24 @@ def gen_features(tweet):
 
     return features
 
-def main(tweet):
+def main(tweet, user_predictions=None):
+    t0 = time.time()
     features = gen_features(tweet)
+    t1 = time.time()
+    print "User Feature generation took "+str(t1-t0)
+    t0 = time.time()
     flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list, tuple)) else l + [i], lst, [])
     features = flatten(features)
     df = pd.DataFrame([features])
-
     with open(user_model_path, 'rb') as f:
-        tweet_model_list = pickle.load(f)
+		user_model_list = pickle.load(f)
+  
     preds = []
-    for model in tweet_model_list:
+    for model in user_model_list:
         preds.append(model.predict(df))
-
+    t1 = time.time()
+    print "User Prediction took "+str(t1-t0)
+    t0 = time.time()
     pred_val = []
     result = Counter(preds[i][0] for i in range(len(preds)))
     res_key_val = result.keys(), result.values()
@@ -334,4 +341,10 @@ def main(tweet):
             pred_val.append("fake")
     else:
         pred_val.append(res_key_val[0][0])
+	t1 = time.time()
+	print "User Majority Vote took "+str(t1-t0)
+	
+	user_predictions = pred_val[0]
+    #print pred_val[0]
+    #return user_predictions
     return pred_val[0]
