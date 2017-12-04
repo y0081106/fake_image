@@ -10,6 +10,8 @@ import pandas as pd
 import sys
 import pickle
 import gzip
+import time
+import gc
 
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -48,14 +50,11 @@ def getNumUppercaseChars(tweet):
     postText = tweet['text']
     for i in postText:
         postTextStr = i.encode('utf-8', 'ignore')
-    postTextStr =  re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+','', postTextStr) # URLs
+    postTextStr =  re.sub(r"http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+",'', postTextStr) # URLs
     postTextStr =  re.sub(r'(?:\#+[\w_]+[\w\'_\-]*[\w_]+)','', postTextStr) # remove hash-tags
     postTextStr =  re.sub(r'(?:@[\w_]+)','', postTextStr) # remove @-mentions
-    for i in postTextStr:
-        if i.isupper():
-            count = count+1
-    return count
-
+    return sum([c.isupper() for c in postTextStr])
+   
 
 def getNumUrls(tweets_data):
     numUrls1 = [tweet.get('entities''urls','') for tweet in tweets_data]
@@ -260,6 +259,7 @@ header = ('id',
 
 def gen_features(tweet):
 	#tid = tweet['id_str']
+	print "getting features"
 	ttext = tweet['text']
 	tlength = len(ttext)
 	twords = len(ttext.split())
@@ -292,6 +292,7 @@ def gen_features(tweet):
 	_, slangWords = pattern_count(ttext, PATTERN_SLANG)
 	_, negWords = pattern_count(ttext, PATTERN_NEGATIVE)
 	_, posWords = pattern_count(ttext, PATTERN_POSITIVE)
+	print "got all features"
 	features = (
                 tlength,
                 twords,
@@ -321,7 +322,7 @@ def gen_features(tweet):
                 indegree,
                 harmonic,
                 alexa_metrics)
-
+    #print "got all features"
 	return features
 
 
@@ -385,8 +386,13 @@ def preprocess(df):
     df = normalize(df)
     return df
 
-def main(tweet):
+def main(tweet, tweet_features=None, tweet_predictions=None):
+    t0 = time.time()
     features = gen_features(tweet)
+    t1 = time.time() 
+    print "Tweet Gen features took "+str(t1-t0)
+    print features
+    t0 = time.time()
     flatten = lambda lst: reduce(lambda l, i: l + flatten(i) if isinstance(i, (list, tuple)) else l + [i], lst, [])
     features = flatten(features)
     # logging.debug(features)
@@ -399,13 +405,15 @@ def main(tweet):
                                'rtCount', 'slangWords', 'colonSymbol', 'pleasePresent', 'WotValue', 'numQuesSymbol',
                                'numExclamSymbol', 'readabilityValue', 'Indegree', 'Harmonic',
                                'AlexaPopularity', 'AlexaReach', 'AlexaCountry', 'AlexaDelta'])
-
+    
     with open(model_path, 'rb') as f:
         tweet_model_list = pickle.load(f)
     preds = []
     for model in tweet_model_list:
         preds.append(model.predict(df))
-
+	t1 = time.time()	
+    print "Tweet based prediction took "+str(t1-t0)
+    t0 = time.time()
     pred_val = []
     result = Counter(preds[i][0] for i in range(len(preds)))
     res_key_val = result.keys(), result.values()
@@ -417,4 +425,11 @@ def main(tweet):
             pred_val.append("fake")
     else:
         pred_val.append(res_key_val[0][0])
-    return pred_val[0]
+	t1 = time.time()
+	print "Tweet Based Majority vote took "+str(t1-t0)
+	tweet_features = df
+	tweet_predictions = pred_val[0]
+    #print df
+    #print pred_val[0]
+    #return  tweet_features, tweet_predictions
+    return df, pred_val[0]
