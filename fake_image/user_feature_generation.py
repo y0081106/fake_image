@@ -15,6 +15,7 @@ import emoji
 import sys
 import os
 import gc
+import gzip
 
 from PIL import Image
 from urlparse import urlparse
@@ -30,9 +31,10 @@ from nltk.tokenize import word_tokenize
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-user_model_path = os.path.join(current_dir, 'models/user_models.pkl') 
-F_HARMONIC = "D:/Downloads/hostgraph-h.tsv/hostgraph-h.tsv"
-F_INDEGREE = "D:/Downloads/hostgraph-indegree.tsv/hostgraph-indegree.tsv"
+user_model_path = os.path.join(current_dir, 'models/user_models.pkl')
+
+F_HARMONIC = os.path.join(current_dir, "data/hostgraph-h.tsv.gz")
+F_INDEGREE = os.path.join(current_dir, "data/hostgraph-indegree.tsv.gz")
 
 
 def hasExistingLocation(tweets):
@@ -240,21 +242,19 @@ def getTweetRatio(tweet, accountAge, numTweets):
     else:
         return 0
 
-
 def getIndegree(expandedLink, fin=F_INDEGREE):
-    # print expandedLink
+    #print expandedLink
     if expandedLink == "twitter.com":
         expandedLink = None
     indegreeval = None
 
     if expandedLink == None:
-        return 0
-    with open(fin, 'rb') as tsvin:
-        tsvreader = csv.reader(tsvin, delimiter="\t")
-        for row in tsvreader:
-            if expandedLink == row[0]:
-                return row[1]
-
+    	return 0
+    with gzip.open(fin, 'rb') as tsvin:
+    	tsvreader = csv.reader(tsvin,delimiter="\t")
+    	for row in tsvreader:
+    		if expandedLink == row[0]:
+    			return row[1]
 
 def getHarmonic(indegree, expandedLink, f_harmonic):
     if indegree == None:
