@@ -11,7 +11,7 @@ idna==2.6
 ipython==5.5.0
 ipython-genutils==0.2.0
 langdetect==1.0.7
-nltk==3.2.5
+nltk==3.4.5
 numpy==1.13.3
 olefile==0.44
 pandas==0.21.0
